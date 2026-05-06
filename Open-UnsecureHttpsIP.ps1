@@ -1,25 +1,25 @@
 <#
 .SYNOPSIS
-
+    Auto-connects using HTTPS from a unique IP list with Chrome.
 .DESCRIPTION
-    
+    The script takes as input a list of IPs and attempts to connect to each one using HTTPS.  It opens one Chrome tab per address.
 .PARAMETER IpList
-    The specific OU name of interest.  Can be used to limit the collection scope in a domain environment.
+    The list of target IPs (one per line).
 .EXAMPLE
     .\Open-UnsecureHttpsIp.ps1
-    Uses Chrome to open all IP addresses in a saved list in the current directory called ips.txt
+    Uses Chrome to connect to all unique HTTPS IP addresses listed in ips.txt saved in the current directory.
 .EXAMPLE
-    .\Open-UnsecureHttpsIp.ps1 -IpList '.\http_ips.txt'
-    Uses Chrome to open all IP addresses in a saved list in the current directory called http_ips.txt
+    .\Open-UnsecureHttpsIp.ps1 -IpList .\http_ips.txt
+    Uses Chrome to connect to all unique HTTPS IP addresses listed in http_ips.txt saved in the current directory.
 .NOTES
-    Version 0.02
+    Version 1.00
     Author: Dan Fults
-    Last modified: 05 May 2025
+    Last modified: 06 May 2025
 #>
 
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory=$False, HelpMessage='List of HTTP based IPs')]
+    [Parameter(Position=0, Mandatory=$False, HelpMessage='List of IPs to connect using HTTPS')]
     [string]$IpList = '.\ips.txt'
 )
 
@@ -52,24 +52,26 @@ $chromeArgs = @(
 
 # Add each IP address as a URL to open
 foreach ($ip in $ipAddresses) {
-    # Skip empty lines
-    #if ([string]::IsNullOrWhiteSpace($ip)) {
-    #    continue
-    #}
-    
+  
     # Add https:// prefix if not present
     if ($ip -notmatch "^https?://") {
-        $url = "https://$ip"
+        $addr = "https://$ip"
     } else {
-        $url = $ip
+        $addr = $ip
     }
     
-    $chromeArgs += $url
-    Write-Host "Adding: $url"
+    $chromeArgs += $addr
+    Write-Verbose "Adding: $addr"
 }
 
 # Launch Chrome with all URLs
-Write-Host "`nLaunching Chrome with $($ipAddresses.Count) printer IP addresses..." -ForegroundColor Green
-Start-Process -FilePath $chromePath -ArgumentList $chromeArgs
+if($ipAddresses.Count -eq 0) {
+    Write-Host "No IP address data present, exiting." -ForegroundColor Red
+    exit
+} elseif($ipAddresses.Count -eq 1) {
+    Write-Host "Launching Chrome opening $($ipAddresses.Count) HTTPS tab." -ForegroundColor Green
+} else {
+    Write-Host "Launching Chrome opening $($ipAddresses.Count) HTTPS tabs." -ForegroundColor Green
+}
 
-Write-Host "Done!" -ForegroundColor Green
+Start-Process -FilePath $chromePath -ArgumentList $chromeArgs
